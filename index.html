@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Map with Culture Details</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+        }
+        #searchBar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: white;
+            z-index: 1000;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <input id="searchBar" type="text" placeholder="Search for a location..." />
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const culturalData = {
+            "paris": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/6/62/Eiffel_Tower%2C_Paris.jpg"],
+                culture: "Paris is known for its art, fashion, and cuisine.",
+                traditionalClothes: "Modern chic and haute couture.",
+                traditionalFood: "Baguettes, croissants, escargots, and ratatouille.",
+                placesToVisit: ["Eiffel Tower", "Louvre Museum", "Notre-Dame Cathedral"]
+            },
+            "tokyo": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/e/e7/Tokyo_Tower_and_Skyscrapers_at_Night.jpg"],
+                culture: "A blend of Japanese traditions and modern innovations.",
+                traditionalClothes: "Kimono and yukata.",
+                traditionalFood: "Sushi, ramen, and tempura.",
+                placesToVisit: ["Tokyo Tower", "Senso-ji Temple", "Meiji Shrine"]
+            },
+            "new york": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/a/a1/Statue_of_Liberty_7.jpg"],
+                culture: "Known for its diversity and landmarks.",
+                traditionalClothes: "Modern urban styles.",
+                traditionalFood: "Bagels, pizza, and hot dogs.",
+                placesToVisit: ["Statue of Liberty", "Central Park", "Times Square"]
+            },
+            "india": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/0/0e/IndiaGate.jpg"],
+                culture: "A rich blend of traditions, languages, and customs.",
+                traditionalClothes: "Sari for women, dhoti or kurta for men.",
+                traditionalFood: "Curry, biryani, samosas, and masala chai.",
+                placesToVisit: ["Taj Mahal", "Qutub Minar", "India Gate"]
+            },
+            "canada": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/7/7e/Parliament_Hill_Parliament_Building_Ottawa_Canada.jpg"],
+                culture: "Canada is known for its bilingualism, multiculturalism, and natural beauty.",
+                traditionalClothes: "Flannel shirts, winter coats, and indigenous attire.",
+                traditionalFood: "Poutine, maple syrup, butter tarts.",
+                placesToVisit: ["CN Tower", "Banff National Park", "Parliament Hill"]
+            },
+            "russia": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/1/10/Kremlin_in_Moscow_2009.jpg"],
+                culture: "Russia has a rich history of literature, ballet, and art.",
+                traditionalClothes: "Sarafans and kokoshniks for women, kosovorotkas for men.",
+                traditionalFood: "Borscht, pelmeni, blini, and caviar.",
+                placesToVisit: ["Red Square", "The Kremlin", "Lake Baikal"]
+            },
+            "germany": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/e/e0/Brandenburger_Tor%2C_Berlin.jpg"],
+                culture: "Germany is known for its classical music, philosophy, and beer culture.",
+                traditionalClothes: "Lederhosen and dirndls.",
+                traditionalFood: "Sausages, pretzels, sauerkraut, and schnitzel.",
+                placesToVisit: ["Brandenburg Gate", "Neuschwanstein Castle", "Cologne Cathedral"]
+            },
+            "china": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/2/27/Forbidden_City_in_Beijing.jpg"],
+                culture: "China is known for its ancient history, calligraphy, and dynasties.",
+                traditionalClothes: "Cheongsam (Qipao) for women, Changshan for men.",
+                traditionalFood: "Peking duck, dim sum, hot pot.",
+                placesToVisit: ["Great Wall of China", "Forbidden City", "Terracotta Army"]
+            },
+            "kerala": {
+                images: ["https://upload.wikimedia.org/wikipedia/commons/a/ab/Backwaters_in_Kerala.jpg"],
+                culture: "Known for its backwaters, cultural festivals, and Ayurveda.",
+                traditionalClothes: "Sari for women, mundu for men.",
+                traditionalFood: "Sadya (traditional feast), fish curry, and coconut-based dishes.",
+                placesToVisit: ["Alleppey Backwaters", "Kumarakom", "Sree Padmanabhaswamy Temple"]
+            }
+        };
+
+        async function searchLocation(query) {
+            try {
+                const normalizedQuery = query.toLowerCase().trim().replace(/\s+/g, '').toLowerCase(); // Remove spaces and normalize
+                let response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&addressdetails=1`);
+                let data = await response.json();
+
+                if (data.length > 0) {
+                    let place = data[0];
+                    let lat = parseFloat(place.lat);
+                    let lon = parseFloat(place.lon);
+                    map.setView([lat, lon], 10);
+
+                    let popupContent = `<b>${place.display_name}</b>`;
+
+                    // Match location data based on normalized query
+                    const locationData = culturalData[normalizedQuery];
+                    
+                    if (locationData) {
+                        popupContent += `<p>${locationData.culture}</p>`;
+                        popupContent += `<p><b>Traditional Clothes:</b> ${locationData.traditionalClothes}</p>`;
+                        popupContent += `<p><b>Traditional Food:</b> ${locationData.traditionalFood}</p>`;
+                        popupContent += `<p><b>Places to Visit:</b></p><ul>`;
+                        locationData.placesToVisit.forEach(place => {
+                            popupContent += `<li>${place}</li>`;
+                        });
+                        popupContent += `</ul>`;
+                        locationData.images.forEach(img => {
+                            popupContent += `<img src="${img}" alt="Image" style="width: 200px; height: auto; margin-top: 10px;">`;
+                        });
+                    } else {
+                        popupContent += "<p>No specific cultural data available. Try exploring museums, landmarks, and local cuisine!</p>";
+                    }
+
+                    L.marker([lat, lon]).addTo(map)
+                        .bindPopup(popupContent)
+                        .openPopup();
+                } else {
+                    alert("Location not found. Please try another search.");
+                }
+            } catch (error) {
+                console.error("Error with search:", error);
+            }
+        }
+
+        document.getElementById("searchBar").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                let query = e.target.value;
+                if (query) {
+                    searchLocation(query);
+                } else {
+                    alert("Please enter a location to search.");
+                }
+            }
+        });
+    </script>
+</body>
+</html>
